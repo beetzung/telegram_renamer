@@ -5,9 +5,11 @@ import string
 import time
 from datetime import datetime, timedelta
 import sys
+import argparse
 
 from telethon import TelegramClient
-from telethon.errors.rpcerrorlist import FloodWaitError
+from telethon.errors.rpcerrorlist import FloodWaitError, UsernameInvalidError, UsernameNotModifiedError, \
+    UsernameNotOccupiedError, UsernameOccupiedError
 from telethon.tl.functions.account import UpdateUsernameRequest
 
 
@@ -44,25 +46,31 @@ def rename_user(client):
                 print("Too often requests, waiting {} seconds...".format(seconds))
                 time.sleep(seconds)
                 execute()
+            except (UsernameInvalidError, UsernameNotModifiedError, UsernameNotOccupiedError, UsernameOccupiedError):
+                execute()
 
         execute()
         print("success")
 
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', help='Set 2FA password')
+parser.add_argument('-s', help='Set frequency in seconds')
+
+args = parser.parse_args()
+password = args.p
+secs = args.s
+
+if secs is None:
+    secs = 3600 # Hour
+
 api_id = get_json("TG_API_ID", "Enter API ID: ", cast=int)
 api_hash = get_json("TG_API_HASH", "Enter API hash: ")
-bot = TelegramClient("anon", api_id, api_hash)
-bot.start(password=lambda: get_json('TG_2FO_PASS', 'Enter the 2FO password: '))
-
-if len(sys.argv) > 1:
-    arg = sys.argv[1]
-    try:
-        secs = int(arg)
-    except ValueError:
-        print(arg + " is not a number")
-        secs = 60 * 60
+bot = TelegramClient("user", api_id, api_hash)
+if password is None:
+    bot.start()
 else:
-    secs = 60 * 60
+    bot.start(password=lambda: password)
 
 
 while True:
